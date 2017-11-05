@@ -1,16 +1,15 @@
 package popularmovies.anaels.com;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.StaggeredGridLayoutManager;
-import android.util.DisplayMetrics;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.View;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -25,18 +24,22 @@ public class HomeActivity extends AppCompatActivity {
     private RecyclerView recyclerViewMovies;
     private MovieAdapter movieAdapter;
 
-    private Context context;
+    private Context mContext;
+    private Activity mActivity;
 
     private String filter;
     private final String POPULAR_FILTER = "popular";
     private final String TOPRATED_FILTER = "top_rated";
+
+    public static final String KEY_INTENT_MOVIE = "keyIntentMovie";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 
-        context = this;
+        mContext = this;
+        mActivity = this;
         filter = POPULAR_FILTER;
 
         recyclerViewMovies = (RecyclerView) findViewById(R.id.recyclerViewMovies);
@@ -58,7 +61,7 @@ public class HomeActivity extends AppCompatActivity {
         }, new ApiService.OnError() {
             @Override
             public void onError() {
-                Toast.makeText(context, "An error occured, please retry!", Toast.LENGTH_LONG).show();
+                Toast.makeText(mContext, "An error occured, please retry!", Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -68,7 +71,14 @@ public class HomeActivity extends AppCompatActivity {
         GridLayoutManager gridLayoutManager = new GridLayoutManager(this, ScreenHelper.calculateNoOfColumns(this, 110));
         recyclerViewMovies.setLayoutManager(gridLayoutManager);
 
-        movieAdapter = new MovieAdapter(this, movieList);
+        movieAdapter = new MovieAdapter(this, movieList, new MovieAdapter.OnItemClickListener() {
+            @Override
+            public void onItemClick(Movie item) {
+                Intent i = new Intent(mActivity, MovieActivity.class);
+                i.putExtra(KEY_INTENT_MOVIE, item); // using the (String name, Parcelable value) overload!
+                startActivity(i);
+            }
+        });
         recyclerViewMovies.setAdapter(movieAdapter);
     }
 
@@ -80,8 +90,6 @@ public class HomeActivity extends AppCompatActivity {
         menu.findItem(R.id.sortby).setTitle(getString(R.string.menu_sortby, getDisplayFilterName()));
         return true;
     }
-
-//TODO //RM FIXME ut highlight on this item when selected, otherwise this is a mess
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {

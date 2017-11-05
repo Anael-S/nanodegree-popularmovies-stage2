@@ -1,7 +1,6 @@
 package popularmovies.anaels.com;
 
 import android.app.Activity;
-import android.content.Context;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -19,10 +18,18 @@ import popularmovies.anaels.com.api.model.Movie;
 public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.ViewHolder> {
     private ArrayList<Movie> listMovies;
     private Activity mActivity;
+    private final OnItemClickListener listener;
 
-    public MovieAdapter(Activity activity, ArrayList<Movie> listMovies) {
+
+    public interface OnItemClickListener {
+        void onItemClick(Movie item);
+    }
+
+
+    public MovieAdapter(Activity activity, ArrayList<Movie> listMovies, OnItemClickListener listener) {
         this.mActivity = activity;
         this.listMovies = listMovies;
+        this.listener = listener;
 
     }
 
@@ -60,8 +67,7 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.ViewHolder> 
                 public void onClick(View v) {
                     final int position = getAdapterPosition();
                     if (listMovies != null && position >=0 && position <= listMovies.size()-1 && listMovies.get(position) != null) {
-                        DetailMovieDialog dialogDetail = new DetailMovieDialog(mActivity, listMovies.get(position));
-                        dialogDetail.show();
+                        listener.onItemClick(listMovies.get(position));
                     }
                 }
             });

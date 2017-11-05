@@ -4,12 +4,12 @@ import android.app.Activity;
 import android.app.Dialog;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.view.Window;
-import android.view.WindowManager;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -27,7 +27,7 @@ import popularmovies.anaels.com.api.model.Trailer;
 import popularmovies.anaels.com.helper.FavoriteHelper;
 import popularmovies.anaels.com.helper.ScreenHelper;
 
-public class DetailMovieDialog extends Dialog {
+public class MovieActivity extends AppCompatActivity {
 
     Activity mActivity;
 
@@ -43,20 +43,16 @@ public class DetailMovieDialog extends Dialog {
     private ArrayList<Movie> listFavMovie;
     private Movie mMovie;
 
-    public DetailMovieDialog(Activity a, Movie movie) {
-        super(a, R.style.DialogMovie);
-        setCanceledOnTouchOutside(true);
-        setCancelable(true);
-        mActivity = a;
-        mMovie = movie;
-    }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.dialog_detail_movie);
-        getWindow().setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT);
+        setContentView(R.layout.activity_movie);
         getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
+        mActivity = this;
+
+        //We get our UI
         posterImageView = (ImageView) findViewById(R.id.posterImageView);
         titleTextView = (TextView) findViewById(R.id.titleTextView);
         plotTextView = (TextView) findViewById(R.id.plotTextView);
@@ -66,7 +62,11 @@ public class DetailMovieDialog extends Dialog {
         trailersRecyclerView = (RecyclerView) findViewById(R.id.trailersGridView);
         reviewLayout = (LinearLayout) findViewById(R.id.reviewLayout);
 
-        listFavMovie = FavoriteHelper.getFavorite(getContext());
+        //We get our items
+
+        mMovie = getIntent().getParcelableExtra(HomeActivity.KEY_INTENT_MOVIE);
+
+        listFavMovie = FavoriteHelper.getFavorite(this);
 
         displayData();
     }
@@ -113,7 +113,7 @@ public class DetailMovieDialog extends Dialog {
                         listFavMovie.add(mMovie);
                         favoriteButton.setImageResource(R.drawable.filled_star);
                     }
-                    FavoriteHelper.setFavorite(getContext(), listFavMovie);
+                    FavoriteHelper.setFavorite(mActivity, listFavMovie);
                 }
             });
 
