@@ -55,6 +55,8 @@ public class Movie implements Parcelable {
     @Expose
     private String releaseDate;
 
+    private boolean isFav;
+
     public Integer getVoteCount() {
         return voteCount;
     }
@@ -167,7 +169,13 @@ public class Movie implements Parcelable {
         this.releaseDate = releaseDate;
     }
 
+    public boolean isFav() {
+        return isFav;
+    }
 
+    public void setFav(boolean fav) {
+        isFav = fav;
+    }
 
     @Override
     public boolean equals(Object o) {

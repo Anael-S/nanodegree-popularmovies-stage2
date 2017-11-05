@@ -20,6 +20,11 @@
         <activity android:name=".MovieActivity"
             android:theme="@style/MovieActivity">
         </activity>
+
+        <provider
+            android:name=".persistence.MoviesProvider"
+            android:authorities="popularmovies.anaels.com"
+            android:exported="false" />
     </application>
 
 </manifest>
