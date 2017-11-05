@@ -11,6 +11,7 @@ import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 
+import popularmovies.anaels.com.BuildConfig;
 import popularmovies.anaels.com.api.model.Movie;
 import popularmovies.anaels.com.api.model.ResultMoviesJSONApi;
 import popularmovies.anaels.com.api.model.ResultReviewsJSONApi;
@@ -24,10 +25,7 @@ import popularmovies.anaels.com.helper.SerializeHelper;
  */
 public class ApiService {
 
-    /**
-     * FIXME YOU NEED TO CHANGE THIS KEY IF YOU WANT TO ACCESS THE API!
-     */
-    private static final String API_KEY = "";
+    private static final String API_KEY = BuildConfig.API_KEY;
     private static final String BASE_URL_MOVIES = "http://api.themoviedb.org/3/movie/";
     public static final String BASE_URL_IMAGES = "http://image.tmdb.org/t/p/w342/";
 
