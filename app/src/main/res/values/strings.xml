@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">PopularMovies</string>
+    <string name="exit">Exit</string>
+    <string name="menu_refresh">Refresh</string>
+    <string name="menu_sortby">Sort by %1$s</string>
+    <string name="menu_favorites">Favorites</string>
+
+    <string name="rating">%1$s/10</string>
+
+</resources>
