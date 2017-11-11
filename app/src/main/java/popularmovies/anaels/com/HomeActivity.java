@@ -12,13 +12,13 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import popularmovies.anaels.com.api.ApiService;
 import popularmovies.anaels.com.api.model.Movie;
@@ -26,7 +26,7 @@ import popularmovies.anaels.com.helper.FavoriteHelper;
 import popularmovies.anaels.com.helper.ScreenHelper;
 import popularmovies.anaels.com.persistence.MoviesContract;
 
-public class HomeActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor>{
+public class HomeActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
 
     private RecyclerView recyclerViewMovies;
     private MovieAdapter movieAdapter;
@@ -39,10 +39,14 @@ public class HomeActivity extends AppCompatActivity implements LoaderManager.Loa
     private final String TOPRATED_FILTER = "top_rated";
 
     public static final String KEY_INTENT_MOVIE = "keyIntentMovie";
+    public static final String KEY_INTENT_LIST_FAV_MOVIE = "keyIntentFavMovie";
 
-    private ArrayList<Movie> mMovieList;
+    private ArrayList<Movie> mMovieList = new ArrayList<>();
+    private ArrayList<Movie> mFavoriteMovieList = new ArrayList<>();
 
     private final int MOVIE_LOADER = 0;
+
+    private boolean loadFavFromDB;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,28 +59,37 @@ public class HomeActivity extends AppCompatActivity implements LoaderManager.Loa
 
         recyclerViewMovies = (RecyclerView) findViewById(R.id.recyclerViewMovies);
 
-        loadData();
+        loadDataFromAPI();
 
-        initLoader();
+        loadFavFromDB=true;
+        initLoaderFavorite();
     }
-    
-    private void initLoader(){
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (!loadFavFromDB){
+            mFavoriteMovieList =FavoriteHelper.getFavorite(this);
+        }
+
+        loadFavFromDB=false;
+    }
+
+    private void initLoaderFavorite() {
         getLoaderManager().initLoader(MOVIE_LOADER, null, this);
     }
 
-    private void loadData() {
+    private void loadDataFromAPI() {
         ApiService.getMoviesByFilter(this, filter, new ApiService.OnMoviesRecovered() {
             @Override
             public void onMoviesRecovered(ArrayList<Movie> movieList) {
                 mMovieList = movieList;
                 if (movieAdapter == null) {
-                    initRecyclerView(movieList);
+                    initRecyclerView(mMovieList);
                 } else {
-                    movieAdapter.setListMovies(movieList);
+                    movieAdapter.setListMovies(mMovieList);
                     movieAdapter.notifyDataSetChanged();
                 }
-                Movie[] lMovieList = movieList.toArray(new Movie[movieList.size()]);
-                insertData(lMovieList);
             }
         }, new ApiService.OnError() {
             @Override
@@ -97,6 +110,7 @@ public class HomeActivity extends AppCompatActivity implements LoaderManager.Loa
             public void onItemClick(Movie item) {
                 Intent i = new Intent(mActivity, MovieActivity.class);
                 i.putExtra(KEY_INTENT_MOVIE, item);
+                i.putExtra(KEY_INTENT_LIST_FAV_MOVIE, mFavoriteMovieList);
                 startActivity(i);
             }
         });
@@ -116,18 +130,18 @@ public class HomeActivity extends AppCompatActivity implements LoaderManager.Loa
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.refresh:
-                loadData();
+                loadDataFromAPI();
                 return true;
             case R.id.sortby:
                 switchFilter();
-                loadData();
+                loadDataFromAPI();
                 item.setTitle(getString(R.string.menu_sortby, getDisplayFilterName()));
                 return true;
             case R.id.favorites:
                 if (movieAdapter == null) {
-                    initRecyclerView(FavoriteHelper.getFavorite(this));
+                    initRecyclerView(mFavoriteMovieList);
                 } else {
-                    movieAdapter.setListMovies(FavoriteHelper.getFavorite(this));
+                    movieAdapter.setListMovies(mFavoriteMovieList);
                     movieAdapter.notifyDataSetChanged();
                 }
                 return true;
@@ -154,33 +168,10 @@ public class HomeActivity extends AppCompatActivity implements LoaderManager.Loa
         return filterName;
     }
 
-    // insert data into database
-    public void insertData(Movie[] movieList){
-        ContentValues[] flavorValuesArr = new ContentValues[movieList.length];
-        // Loop through static array of movieList, add each to an instance of ContentValues
-        // in the array of ContentValues
-        for(int i = 0; i < movieList.length; i++){
-            flavorValuesArr[i] = new ContentValues();
-            flavorValuesArr[i].put(MoviesContract.MovieEntry._ID, movieList[i].getId());
-            flavorValuesArr[i].put(MoviesContract.MovieEntry.COLUMN_FAVORITE, movieList[i].isFav());
-            flavorValuesArr[i].put(MoviesContract.MovieEntry.COLUMN_OVERVIEW, movieList[i].getOverview());
-            flavorValuesArr[i].put(MoviesContract.MovieEntry.COLUMN_POPULARITY, movieList[i].getPopularity());
-            flavorValuesArr[i].put(MoviesContract.MovieEntry.COLUMN_POSTER_PATH, movieList[i].getPosterPath());
-            flavorValuesArr[i].put(MoviesContract.MovieEntry.COLUMN_RELEASE_DATE, movieList[i].getReleaseDate());
-            flavorValuesArr[i].put(MoviesContract.MovieEntry.COLUMN_TITLE, movieList[i].getTitle());
-            flavorValuesArr[i].put(MoviesContract.MovieEntry.COLUMN_VOTE_AVERAGE, movieList[i].getVoteAverage());
-        }
-
-        // bulkInsert our ContentValues array
-        getContentResolver().bulkInsert(MoviesContract.MovieEntry.CONTENT_URI,
-                flavorValuesArr);
-    }
-
 
     @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
         String sortOrder;
-        final int NUMBER_OF_MOVIES = 20;
 
         if (filter.equals(POPULAR_FILTER)) {
             sortOrder = MoviesContract.MovieEntry.COLUMN_POPULARITY + " DESC";
@@ -188,19 +179,22 @@ public class HomeActivity extends AppCompatActivity implements LoaderManager.Loa
             sortOrder = MoviesContract.MovieEntry.COLUMN_VOTE_AVERAGE + " DESC";
         }
 
+        String SELECTION = MoviesContract.MovieEntry.COLUMN_FAVORITE + "=?";
+        String[] selectionArgs = new String[]{"1"};
+
         return new CursorLoader(this,
                 MoviesContract.MovieEntry.CONTENT_URI,
-                new String[]{MoviesContract.MovieEntry._ID, MoviesContract.MovieEntry.COLUMN_POSTER_PATH},
-                null,
-                null,
-                sortOrder + " LIMIT " + NUMBER_OF_MOVIES);
+                MoviesContract.MovieEntry.getAllColumn(), // Projection
+                SELECTION, //selection
+                selectionArgs, //selection args
+                sortOrder);
     }
 
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
-        if (data != null) {
-            mMovieList = new ArrayList<>();
-            while (data.moveToNext()) {
+        if (data != null && data.getCount() > 0 && data.moveToFirst()) {
+            mFavoriteMovieList = new ArrayList<>();
+            do {
                 final int id = data.getInt(data.getColumnIndex(MoviesContract.MovieEntry._ID));
                 String title = data.getString(data.getColumnIndex(MoviesContract.MovieEntry.COLUMN_TITLE));
                 String poster = data.getString(data.getColumnIndex(MoviesContract.MovieEntry.COLUMN_POSTER_PATH));
@@ -218,10 +212,10 @@ public class HomeActivity extends AppCompatActivity implements LoaderManager.Loa
                 lMovie.setOverview(overview);
                 lMovie.setFav(IS_FAVORITE);
                 lMovie.setPopularity(popularity);
-                mMovieList.add(lMovie);
+                mFavoriteMovieList.add(lMovie);
             }
-            movieAdapter.setListMovies(mMovieList);
-            movieAdapter.notifyDataSetChanged();
+            while (data.moveToNext());
+            data.close();
         }
     }
 

@@ -30,10 +30,11 @@ import popularmovies.anaels.com.api.ApiService;
 import popularmovies.anaels.com.api.model.Movie;
 import popularmovies.anaels.com.api.model.Review;
 import popularmovies.anaels.com.api.model.Trailer;
+import popularmovies.anaels.com.helper.FavoriteHelper;
 import popularmovies.anaels.com.helper.ScreenHelper;
 import popularmovies.anaels.com.persistence.MoviesContract;
 
-public class MovieActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor>{
+public class MovieActivity extends AppCompatActivity {
 
     Activity mActivity;
 
@@ -50,7 +51,6 @@ public class MovieActivity extends AppCompatActivity implements LoaderManager.Lo
     private Movie mMovie;
 
     private final String LOG_TAG = "ContentProvider";
-    public static final int FAVORITE_LOADER = 0;
 
 
     @Override
@@ -59,7 +59,6 @@ public class MovieActivity extends AppCompatActivity implements LoaderManager.Lo
         setContentView(R.layout.activity_movie);
         getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
         mActivity = this;
-        listFavMovie = new ArrayList<>();
 
         //We get our UI
         posterImageView = (ImageView) findViewById(R.id.posterImageView);
@@ -73,21 +72,24 @@ public class MovieActivity extends AppCompatActivity implements LoaderManager.Lo
 
         //We get our items
         mMovie = getIntent().getParcelableExtra(HomeActivity.KEY_INTENT_MOVIE);
-
-        getLoaderManager().initLoader(FAVORITE_LOADER, null, this);
-
+        listFavMovie = getIntent().getParcelableArrayListExtra(HomeActivity.KEY_INTENT_LIST_FAV_MOVIE);
+        if (listFavMovie == null) {
+            listFavMovie = new ArrayList<>();
+        }
 
         displayData();
 
     }
 
-
+    /**
+     * Display the data from the movie
+     */
     private void displayData() {
         if (mMovie != null) {
             //Image
             String lUrlImage = ApiService.BASE_URL_IMAGES + mMovie.getPosterPath();
             Picasso.with(mActivity).load(lUrlImage).placeholder(R.drawable.progress_animation).into(posterImageView);
-            if (listFavMovie.contains(mMovie)){
+            if (listFavMovie.contains(mMovie)) {
                 favoriteButton.setImageResource(R.drawable.filled_star);
             }
             //Text
@@ -117,7 +119,7 @@ public class MovieActivity extends AppCompatActivity implements LoaderManager.Lo
                 @Override
                 public void onClick(View v) {
                     //if the movie is already in our favorite, we remove it
-                    if (listFavMovie.contains(mMovie)){
+                    if (listFavMovie.contains(mMovie)) {
                         listFavMovie.remove(mMovie);
                         favoriteButton.setImageResource(R.drawable.empty_star);
                         removeFromFavorite(mMovie);
@@ -160,7 +162,32 @@ public class MovieActivity extends AppCompatActivity implements LoaderManager.Lo
         }
     }
 
-    private void addToFavorite(Movie pMovie){
+    /**
+     * Insert the movie into the DB
+     * @param movie the movie to insert
+     */
+    public void insertInDB(Movie movie) {
+        ContentValues movieValue = new ContentValues();
+        movieValue.put(MoviesContract.MovieEntry._ID, movie.getId());
+        movieValue.put(MoviesContract.MovieEntry.COLUMN_FAVORITE, 1); //is fav
+        movieValue.put(MoviesContract.MovieEntry.COLUMN_OVERVIEW, movie.getOverview());
+        movieValue.put(MoviesContract.MovieEntry.COLUMN_POPULARITY, movie.getPopularity());
+        movieValue.put(MoviesContract.MovieEntry.COLUMN_POSTER_PATH, movie.getPosterPath());
+        movieValue.put(MoviesContract.MovieEntry.COLUMN_RELEASE_DATE, movie.getReleaseDate());
+        movieValue.put(MoviesContract.MovieEntry.COLUMN_TITLE, movie.getTitle());
+        movieValue.put(MoviesContract.MovieEntry.COLUMN_VOTE_AVERAGE, movie.getVoteAverage());
+
+        // insert our ContentValues array
+        getContentResolver().insert(MoviesContract.MovieEntry.CONTENT_URI,
+                movieValue);
+        Log.d(LOG_TAG, "Movie inserted");
+    }
+
+    /**
+     * Add the movie to favorite
+     * @param pMovie the movie to add
+     */
+    private void addToFavorite(Movie pMovie) {
         ContentValues addFavorite = new ContentValues();
         addFavorite.put(MoviesContract.MovieEntry.COLUMN_FAVORITE, 1); //mark as favorite
 
@@ -170,14 +197,21 @@ public class MovieActivity extends AppCompatActivity implements LoaderManager.Lo
                 MoviesContract.MovieEntry._ID + " = ?",
                 new String[]{String.valueOf(pMovie.getId())}
         );
+        //If the row doesn't exist in the DB yet
         if (updatedRows <= 0) {
-            Log.d(LOG_TAG, "Movie not marked as favorite");
+            Log.d(LOG_TAG, "Movie can't be updated, we need to insert it");
+            //We need to insert it
+            insertInDB(pMovie);
         } else {
             Log.d(LOG_TAG, "Movie marked as favorite");
         }
     }
 
-    private void removeFromFavorite(Movie pMovie){
+    /**
+     * Remove the movie from the favorite
+     * @param pMovie the movie to remove
+     */
+    private void removeFromFavorite(Movie pMovie) {
         ContentValues removeFromFavorite = new ContentValues();
         removeFromFavorite.put(MoviesContract.MovieEntry.COLUMN_FAVORITE, 0);
 
@@ -195,42 +229,9 @@ public class MovieActivity extends AppCompatActivity implements LoaderManager.Lo
     }
 
     @Override
-    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
-        return new CursorLoader(
-                this,
-                MoviesContract.MovieEntry.CONTENT_URI,
-                new String[]{MoviesContract.MovieEntry._ID, MoviesContract.MovieEntry.COLUMN_POSTER_PATH},
-                MoviesContract.MovieEntry.COLUMN_FAVORITE + "= ?",
-                new String[]{Integer.toString(1)},
-                null);
-    }
-
-    @Override
-    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
-        Log.d(LOG_TAG, "Cursor loaded, " + data.getCount() + " favorite movies");
-        while (data.moveToNext()){
-            final int id = data.getInt(data.getColumnIndex(MoviesContract.MovieEntry._ID));
-            String title = data.getString(data.getColumnIndex(MoviesContract.MovieEntry.COLUMN_TITLE));
-            String poster = data.getString(data.getColumnIndex(MoviesContract.MovieEntry.COLUMN_POSTER_PATH));
-            double rating = data.getDouble(data.getColumnIndex(MoviesContract.MovieEntry.COLUMN_VOTE_AVERAGE));
-            String releaseDate = data.getString(data.getColumnIndex(MoviesContract.MovieEntry.COLUMN_RELEASE_DATE));
-            String overview = data.getString(data.getColumnIndex(MoviesContract.MovieEntry.COLUMN_OVERVIEW));
-            double popularity = data.getDouble(data.getColumnIndex(MoviesContract.MovieEntry.COLUMN_POPULARITY));
-            final boolean IS_FAVORITE = data.getInt(data.getColumnIndex(MoviesContract.MovieEntry.COLUMN_FAVORITE)) == 1;
-            Movie lMovie = new Movie();
-            lMovie.setId(id);
-            lMovie.setTitle(title);
-            lMovie.setPosterPath(poster);
-            lMovie.setVoteAverage(rating);
-            lMovie.setReleaseDate(releaseDate);
-            lMovie.setOverview(overview);
-            lMovie.setFav(IS_FAVORITE);
-            lMovie.setPopularity(popularity);
-            listFavMovie.add(lMovie);
-        }
-    }
-
-    @Override
-    public void onLoaderReset(Loader<Cursor> loader) {
+    protected void onPause() {
+        super.onPause();
+        //We save our favorite
+        FavoriteHelper.setFavorite(this,listFavMovie);
     }
 }
