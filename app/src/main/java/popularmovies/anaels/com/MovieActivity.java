@@ -92,12 +92,6 @@ public class MovieActivity extends AppCompatActivity {
 
     }
 
-    @Override
-    public void onConfigurationChanged(Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-        setContentView(R.layout.activity_movie_landscape);
-    }
-
     /**
      * Display the data from the movie
      */
