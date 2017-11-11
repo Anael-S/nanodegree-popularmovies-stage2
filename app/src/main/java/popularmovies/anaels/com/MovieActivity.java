@@ -6,6 +6,7 @@ import android.app.LoaderManager;
 import android.content.ContentValues;
 import android.content.CursorLoader;
 import android.content.Loader;
+import android.content.res.Configuration;
 import android.database.Cursor;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
@@ -59,7 +60,14 @@ public class MovieActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_movie);
+        switch (getResources().getConfiguration().orientation) {
+            case Configuration.ORIENTATION_PORTRAIT:
+                setContentView(R.layout.activity_movie);
+                break;
+            case Configuration.ORIENTATION_LANDSCAPE:
+                setContentView(R.layout.activity_movie_landscape);
+                break;
+        }
         getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
         mActivity = this;
 
@@ -82,6 +90,12 @@ public class MovieActivity extends AppCompatActivity {
 
         displayData();
 
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        setContentView(R.layout.activity_movie_landscape);
     }
 
     /**

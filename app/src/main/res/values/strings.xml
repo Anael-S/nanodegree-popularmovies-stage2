@@ -6,5 +6,9 @@
     <string name="menu_favorites">Favorites</string>
 
     <string name="rating">%1$s/10</string>
+    <string name="title">Title</string>
+    <string name="release_date">Release Date:</string>
+    <string name="reviews">See reviews</string>
+    <string name="trailers">Trailers</string>
 
 </resources>
