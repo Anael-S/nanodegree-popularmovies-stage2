@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -59,20 +60,41 @@ public class HomeActivity extends AppCompatActivity implements LoaderManager.Loa
 
         recyclerViewMovies = (RecyclerView) findViewById(R.id.recyclerViewMovies);
 
-        loadDataFromAPI();
+        //If we already got our movie lists, we recover them
+        if (savedInstanceState != null) {
+            // Restore value of members from saved state
+            mMovieList = savedInstanceState.getParcelableArrayList(KEY_INTENT_MOVIE);
+            mFavoriteMovieList = savedInstanceState.getParcelableArrayList(KEY_INTENT_LIST_FAV_MOVIE);
+            if (movieAdapter == null) {
+                initRecyclerView(mMovieList);
+            } else {
+                movieAdapter.setListMovies(mMovieList);
+                movieAdapter.notifyDataSetChanged();
+            }
+        } else {
+            //Otherwise we load them from the API and SQLite DB
+            loadDataFromAPI();
 
-        loadFavFromDB=true;
-        initLoaderFavorite();
+            loadFavFromDB = true;
+            initLoaderFavorite();
+        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        if (!loadFavFromDB){
-            mFavoriteMovieList =FavoriteHelper.getFavorite(this);
+        if (!loadFavFromDB) {
+            mFavoriteMovieList = FavoriteHelper.getFavorite(this);
         }
 
-        loadFavFromDB=false;
+        loadFavFromDB = false;
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        outState.putParcelableArrayList(KEY_INTENT_MOVIE, mMovieList);
+        outState.putParcelableArrayList(KEY_INTENT_LIST_FAV_MOVIE, mFavoriteMovieList);
+        super.onSaveInstanceState(outState);
     }
 
     private void initLoaderFavorite() {
