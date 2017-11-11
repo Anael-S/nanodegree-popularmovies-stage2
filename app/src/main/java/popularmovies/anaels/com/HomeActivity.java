@@ -27,6 +27,9 @@ import popularmovies.anaels.com.helper.FavoriteHelper;
 import popularmovies.anaels.com.helper.ScreenHelper;
 import popularmovies.anaels.com.persistence.MoviesContract;
 
+/**
+ * Display the list of movies
+ */
 public class HomeActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
 
     private RecyclerView recyclerViewMovies;
@@ -35,13 +38,17 @@ public class HomeActivity extends AppCompatActivity implements LoaderManager.Loa
     private Context mContext;
     private Activity mActivity;
 
+    //Filter
     private String filter;
     private final String POPULAR_FILTER = "popular";
     private final String TOPRATED_FILTER = "top_rated";
 
+    //Keys
     public static final String KEY_INTENT_MOVIE = "keyIntentMovie";
     public static final String KEY_INTENT_LIST_FAV_MOVIE = "keyIntentFavMovie";
+    public static final String KEY_INTENT_FILTER = "keyIntentFilter";
 
+    //Movie lists
     private ArrayList<Movie> mMovieList = new ArrayList<>();
     private ArrayList<Movie> mFavoriteMovieList = new ArrayList<>();
 
@@ -56,13 +63,13 @@ public class HomeActivity extends AppCompatActivity implements LoaderManager.Loa
 
         mContext = this;
         mActivity = this;
-        filter = POPULAR_FILTER;
 
         recyclerViewMovies = (RecyclerView) findViewById(R.id.recyclerViewMovies);
 
         //If we already got our movie lists, we recover them
         if (savedInstanceState != null) {
             // Restore value of members from saved state
+            filter = savedInstanceState.getString(KEY_INTENT_FILTER);
             mMovieList = savedInstanceState.getParcelableArrayList(KEY_INTENT_MOVIE);
             mFavoriteMovieList = savedInstanceState.getParcelableArrayList(KEY_INTENT_LIST_FAV_MOVIE);
             if (movieAdapter == null) {
@@ -73,20 +80,20 @@ public class HomeActivity extends AppCompatActivity implements LoaderManager.Loa
             }
         } else {
             //Otherwise we load them from the API and SQLite DB
+            filter = POPULAR_FILTER;
             loadDataFromAPI();
-
             loadFavFromDB = true;
-            initLoaderFavorite();
+            getLoaderManager().initLoader(MOVIE_LOADER, null, this);
         }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        //We get our updated fav list without accessing the DB again
         if (!loadFavFromDB) {
             mFavoriteMovieList = FavoriteHelper.getFavorite(this);
         }
-
         loadFavFromDB = false;
     }
 
@@ -94,13 +101,13 @@ public class HomeActivity extends AppCompatActivity implements LoaderManager.Loa
     public void onSaveInstanceState(Bundle outState) {
         outState.putParcelableArrayList(KEY_INTENT_MOVIE, mMovieList);
         outState.putParcelableArrayList(KEY_INTENT_LIST_FAV_MOVIE, mFavoriteMovieList);
+        outState.putString(KEY_INTENT_FILTER, filter);
         super.onSaveInstanceState(outState);
     }
 
-    private void initLoaderFavorite() {
-        getLoaderManager().initLoader(MOVIE_LOADER, null, this);
-    }
-
+    /**
+     * Load the favorites movie list from the DB
+     */
     private void loadDataFromAPI() {
         ApiService.getMoviesByFilter(this, filter, new ApiService.OnMoviesRecovered() {
             @Override
@@ -123,6 +130,10 @@ public class HomeActivity extends AppCompatActivity implements LoaderManager.Loa
 
     }
 
+    /**
+     * Initiate the recyclerView containing the movies
+     * @param movieList the movie list
+     */
     private void initRecyclerView(ArrayList<Movie> movieList) {
         GridLayoutManager gridLayoutManager = new GridLayoutManager(this, ScreenHelper.calculateNoOfColumns(this, 110));
         recyclerViewMovies.setLayoutManager(gridLayoutManager);
@@ -172,6 +183,9 @@ public class HomeActivity extends AppCompatActivity implements LoaderManager.Loa
         }
     }
 
+    /**
+     * Switch the filter between Popular and Top rated
+     */
     private void switchFilter() {
         if (filter.equals(POPULAR_FILTER)) {
             filter = TOPRATED_FILTER;
@@ -180,6 +194,10 @@ public class HomeActivity extends AppCompatActivity implements LoaderManager.Loa
         }
     }
 
+    /**
+     * Get the filter name to display on the menu
+     * @return the filter
+     */
     private String getDisplayFilterName() {
         String filterName;
         if (filter.equals(POPULAR_FILTER)) {
@@ -190,7 +208,9 @@ public class HomeActivity extends AppCompatActivity implements LoaderManager.Loa
         return filterName;
     }
 
-
+    /**
+     * Load the favorites movies from the DB
+     */
     @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
         String sortOrder;
@@ -212,6 +232,9 @@ public class HomeActivity extends AppCompatActivity implements LoaderManager.Loa
                 sortOrder);
     }
 
+    /**
+     * When the movie are loaded, we put it on our list
+     */
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
         if (data != null && data.getCount() > 0 && data.moveToFirst()) {

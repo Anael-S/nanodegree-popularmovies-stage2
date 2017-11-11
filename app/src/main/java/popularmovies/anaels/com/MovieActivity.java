@@ -34,6 +34,9 @@ import popularmovies.anaels.com.helper.FavoriteHelper;
 import popularmovies.anaels.com.helper.ScreenHelper;
 import popularmovies.anaels.com.persistence.MoviesContract;
 
+/**
+ * Display the detail of a specific movie
+ */
 public class MovieActivity extends AppCompatActivity {
 
     Activity mActivity;

@@ -5,6 +5,9 @@ import android.content.ContentUris;
 import android.net.Uri;
 import android.provider.BaseColumns;
 
+/**
+ * Contract for the movie DB
+ */
 public class MoviesContract {
 
 	public static final String CONTENT_AUTHORITY = "popularmovies.anaels.com";
@@ -28,7 +31,6 @@ public class MoviesContract {
 		public static final String[] getAllColumn(){
 			return new String[]{_ID,COLUMN_POSTER_PATH,COLUMN_RELEASE_DATE,COLUMN_TITLE,COLUMN_FAVORITE,COLUMN_OVERVIEW,COLUMN_POPULARITY,COLUMN_VOTE_AVERAGE};
 		}
-
 
 		// create content uri
 		public static final Uri CONTENT_URI = BASE_CONTENT_URI.buildUpon()

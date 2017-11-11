@@ -4,7 +4,10 @@ import android.app.Application;
 
 import com.facebook.stetho.Stetho;
 
-public class MyApplication extends Application {
+/**
+ * Used to init Stetho
+ */
+public class PopularMovieApplication extends Application {
   public void onCreate() {
     super.onCreate();
     Stetho.initializeWithDefaults(this);
